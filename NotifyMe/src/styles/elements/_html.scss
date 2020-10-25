@@ -1,0 +1,96 @@
+/* ==========================================================================
+   #PAGE
+   ========================================================================== */
+
+/**
+ * Simple page-level setup.
+ *
+ */
+
+html {
+  background: $color-bg;
+  color: $color-text;
+  font-family: $font-sans-serif;
+  font-size: 16px;
+  font-size: 1rem;
+  line-height: 1.8;
+  min-height: 100%;
+  overflow-y: scroll;
+  padding: 0 4.51388888888vw;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+
+}
+
+body{
+  font-size: 1.6rem;
+}
+
+p{
+  text-align: center;
+}
+
+article{
+  margin-top: 4rem;
+}
+
+
+.overlay_main{
+    background-color:$color-bg;
+    min-height: 100%;
+    width: 100%;
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 99;
+
+    .button_close{
+      width: 6.4rem;
+      height: 6.4rem;
+      position: absolute;
+      right: 3.5rem;
+      top: 3.5rem;
+      cursor: pointer;
+
+       span{
+        background:$color-text;
+        height: 2px;
+        width: 140px;
+        display: block;
+        top: 48px;
+        left: -20px;
+        position: relative;
+      }
+        span:nth-child(1){
+          transform: rotate(45deg);
+        }
+        span:nth-child(2){
+         transform: rotate(-45deg);
+        }
+    }
+   
+    .overlay_content{
+      max-width: 1600px;
+      margin: 0 auto 0 auto;
+
+      .title {
+        text-align: center;
+        font-size: 62px;
+        font-weight: 700;
+        margin: 5% 0;
+        letter-spacing: 0.2rem;
+      }
+      .image_con{
+        padding: 4% 0 8% 0;
+        margin: 0 1rem;
+
+        img{
+          width: 100%;
+        }
+      }
+    }
+
+}
+
+

@@ -1,0 +1,1 @@
+function set_subscriber(){var s={action:"nm-ajax",do:"save",eventid:"1",email:"spy15@bluewin.ch"};jQuery(document).ready(function(o){o.post(wp_site_url+"/wp-admin/admin-ajax.php",s,function(s){tools.s(s)})})}import*as tools from"./modules/tools.js";tools.s("hi0"),set_subscriber();
