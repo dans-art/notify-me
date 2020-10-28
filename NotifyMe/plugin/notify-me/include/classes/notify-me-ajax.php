@@ -11,7 +11,12 @@ class notify_me_ajax {
         //validate
         $eventIdVal = (int) $eventId;
         $emailVal = $email; //Validate this!! To Do!
-        if(false === update_post_meta($eventIdVal,'nm_user',$emailVal)){
+        $oldSub = get_post_meta($eventIdVal,'nm_subscribers',true);
+        $subs = ( is_string( $oldSub ) AND empty( $oldSub ) ) ? array((string)$emailVal) : json_decode( $oldSub );
+        $indb = is_integer(array_search($emailVal,$subs, true ));
+        if($indb == false){$subs[] = $emailVal; }
+        if(json_decode( $oldSub ) === $subs){return __('You are already subscribed!','notify-me');}
+        if(false === update_post_meta($eventIdVal,'nm_subscribers',json_encode($subs))){
             return __('Error while saving subscriber','notify-me');
         }else{
         return __('Successfully subscribed!','notify-me');

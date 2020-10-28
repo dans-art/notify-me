@@ -4,7 +4,7 @@ class notify_me{
 
     private $button_tmp = "";
     private $plugin_path = "";
-    private $plugin_path_relative = 'wp-content/plugins/the-events-calendar-notify-me/';
+    private $plugin_path_relative = 'wp-content/plugins/notify-me/';
     private $plugin_url = '';
     private $helper = null;
     private $scriptsLoaded = false;
@@ -75,7 +75,7 @@ class notify_me{
         $action =  $_REQUEST['do'];
         switch($action){
             case 'save':
-                echo $ajax -> save_subscriber($_REQUEST['eventid'],$_REQUEST['email']);    
+                echo $ajax -> save_subscriber($_REQUEST['postid'],$_REQUEST['email']);    
             break;
         }
         exit();

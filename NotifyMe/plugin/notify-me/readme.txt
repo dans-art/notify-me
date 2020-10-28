@@ -1,4 +1,4 @@
-=== The Events Calendar - Notify Me! ===
+=== Notify Me! ===
 
 Contributors: dansart
 Tags: events, calendar, event, venue, organizer, dates, date, google maps, conference, workshop, concert, meeting, seminar, summit, class, modern tribe, tribe, widget, notify, email, update
@@ -10,11 +10,11 @@ Requires PHP: 5.6
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-Notify Me! keeps you updated when a event changes.
+Notify Me! keeps you updated when a post or event changes.
 
 == Description ==
 
-Requires [The Events Calendar](https://m.tri.be/mj) to work. 
+Supported Plugins: [The Events Calendar](https://m.tri.be/mj) to work. 
 
 
 == Installation ==

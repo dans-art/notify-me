@@ -23,22 +23,30 @@ for (var i = 0; i < imgBtn.length; i++) {
   imgBtn[i].addEventListener('mouseover',function(){this.getElementsByTagName("img")[0].classList.add("transition-img");});
   imgBtn[i].addEventListener('mouseout',function(){this.getElementsByTagName("img")[0].classList.remove("transition-img");});
 }*/
+
 tools.s("hi0");
-set_subscriber();
-function set_subscriber(){
+//set_subscriber();
+jQuery(document).ready(function($) {
+  $('.notify-me.button').click(function(){
+    var mail = jQuery(this).parent().find('input').val();
+    var id = jQuery(this).data('pageid');
+    set_subscriber(id,mail);
+  });
+ 
+});
+
+function set_subscriber(pid,em){
   var data = {
     action: 'nm-ajax',
     do: 'save',
-    eventid: '1',
-    email: 'spy15@bluewin.ch',
+    postid: pid,
+    email: em,
   };
-
-  jQuery(document).ready(function($) {
-      $.post(wp_site_url + '/wp-admin/admin-ajax.php', data, function(response) {
-      // alert('Got this from the server: ' + response);
-      tools.s(response);      
-    });
+  jQuery.post(wp_site_url + '/wp-admin/admin-ajax.php', data, function(response) {
+    // alert('Got this from the server: ' + response);
+    tools.s(response);      
   });
+
   }
 
 
