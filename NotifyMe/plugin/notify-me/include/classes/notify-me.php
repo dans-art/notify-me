@@ -1,9 +1,8 @@
 <?php
 
-class notify_me{
+class notify_me extends notify_me_helper{
 
-    private $button_tmp = "";
-    private $plugin_path = "";
+    private $plugin_path = '';
     private $plugin_path_relative = 'wp-content/plugins/notify-me/';
     private $plugin_url = '';
     private $helper = null;
@@ -13,7 +12,7 @@ class notify_me{
     {
         $this -> plugin_path = get_home_path() . $this -> plugin_path_relative;
         $this -> plugin_url = get_site_url() . '/' .  $this -> plugin_path_relative;
-        $this -> helper = new notify_me_helper;
+        //$this -> helper = new notify_me_helper;
 
         //register Ajax
         add_action('wp_ajax_nm-ajax', [$this, 'nm_ajax']);
@@ -21,10 +20,11 @@ class notify_me{
 
     }
 /**
- * Adds the button
+ * Adds the button to the Page or Event.
  *
  * @param boolean $returnhtml - If true, the function will not include the button to the page. Instead it will output the HTML from the template file. 
  * @return void - bool or string
+ * @todo Check if Option for automatic include is set -> create option
  */
     public function add_button($returnhtml = false){
         $tmp = $this -> get_template('button');
@@ -41,16 +41,27 @@ class notify_me{
     }
     /**
      * Gets the Plugin Path. From the current Theme (/notify-me/templates/) or from the Plugin
+     * Structure is the same for plugin an theme
      *
-     * @param [type] $name - Name of the template file to load
+     * @param [string] $name - Name of the template file to load
+     * @param [string] $path - Path to the templates files. Default: templates/theme/
      * @return false on error, path on success
      */
-    public function get_template($name){
-        $tmp = $this -> plugin_path . 'templates/theme/'.$name.'.php';
-        if(!file_exists($tmp)){ return false;}
+    public function get_template($name,$path = 'templates/theme/'){
+        if(empty($this -> plugin_path)){ $this -> plugin_path = get_home_path() . $this -> plugin_path_relative;}
+        $tmpTheme = get_stylesheet_directory() . '/notify-me/' . $path .$name.'.php';
+        $tmp = $this -> plugin_path . $path .$name.'.php';
+        if(file_exists($tmpTheme)){return $tmpTheme;} //check if exists in Theme folder
+        if(!file_exists($tmp)){ return false;} //Not found in Theme as well as in plugin folder
         return $tmp;
     }
 
+    /**
+     * Loads the Javascripts into the head of the page
+     * Modifies the script type to "module"
+     *
+     * @return void
+     */
     public function enqueue_scripts(){
         if($this -> scriptsLoaded){return true;}
         wp_enqueue_script( 'notify-me-app',$this -> plugin_url . 'scripts/notify-me-app.js',['jquery']);
@@ -70,7 +81,6 @@ class notify_me{
      * @return void
      */
     public function nm_ajax() {
-        global $wpdb; // this is how you get access to the database
         $ajax = new notify_me_ajax();
         $action =  $_REQUEST['do'];
         switch($action){

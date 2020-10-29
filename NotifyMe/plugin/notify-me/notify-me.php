@@ -10,25 +10,17 @@
  *
  */
 
+ //Loading the required Classes and tools
+
 require_once('include/tools/helper.php');
 require_once('include/classes/notify-me.php');
 require_once('include/classes/notify-me-ajax.php');
 require_once('include/classes/emailer.php');
 
-//Include JS Script
-
 
 $nm = new notify_me();
 $nm -> add_button();
 
-//Temp
-add_action( 'wp_loaded', 'cron_time' );
 
-function cron_time(){
-    $send = new notify_me_emailer;
-    $pageId = get_the_ID();
-    $send -> set_message("Send!");
-    $send -> set_subject("Test");
-    s($send -> send_email());
-}
+
 
