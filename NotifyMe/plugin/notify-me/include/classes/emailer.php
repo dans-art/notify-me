@@ -45,8 +45,7 @@ class notify_me_emailer extends notify_me{
      */
     public function set_message_from_template($data,$template = 'default')
     {
-        $file = ($template === 'default')?get_locale():$template;
-        $tmp = $this -> get_template($file,'templates/mail/');
+        $tmp = $this -> get_template($template,'templates/mail/');
         if($tmp === false){$tmp = $this -> get_template($template,'templates/mail/');}
         
         if(!$tmp){$this -> message = __('Error while getting the Template file','notify-me');}

@@ -29,7 +29,7 @@ tools.s("hi0");
 jQuery(document).ready(function($) {
   $('.notify-me.button').click(function(){
     var mail = jQuery(this).parent().find('input').val();
-    var id = jQuery(this).data('pageid');
+    var id = jQuery(this).data('postid');
     set_subscriber(id,mail);
   });
  

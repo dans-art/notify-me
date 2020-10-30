@@ -1,93 +1,141 @@
 <?php
 
-class notify_me extends notify_me_helper{
-
-    private $plugin_path = '';
-    private $plugin_path_relative = 'wp-content/plugins/notify-me/';
-    private $plugin_url = '';
-    private $helper = null;
-    private $scriptsLoaded = false;
+class notify_me extends notify_me_helper
+{
 
     public function __construct()
     {
-        $this -> plugin_path = get_home_path() . $this -> plugin_path_relative;
-        $this -> plugin_url = get_site_url() . '/' .  $this -> plugin_path_relative;
-        //$this -> helper = new notify_me_helper;
+        $adminclass = new notify_me_admin;
+      
+        //Add Actions
+        add_action('post_updated', [$this, 'on_save'], 10, 3);
+        add_action('admin_menu', [$this, 'init_admin_menu']);
+        add_action( 'admin_init', [$adminclass, 'add_settings_section_init'] );
 
         //register Ajax
         add_action('wp_ajax_nm-ajax', [$this, 'nm_ajax']);
-        add_action( 'wp_ajax_nopriv_nm-ajax', [$this, 'nm_ajax'] );
+        add_action('wp_ajax_nopriv_nm-ajax', [$this, 'nm_ajax']);
 
-    }
-/**
- * Adds the button to the Page or Event.
- *
- * @param boolean $returnhtml - If true, the function will not include the button to the page. Instead it will output the HTML from the template file. 
- * @return void - bool or string
- * @todo Check if Option for automatic include is set -> create option
- */
-    public function add_button($returnhtml = false){
-        $tmp = $this -> get_template('button');
-        if($returnhtml){
-            return $this -> helper -> requireToVar($tmp);
-        }else{
-            add_action( 'tribe_events_single_event_after_the_content', function () use ($tmp) {
-                include($tmp);
-                $this -> enqueue_scripts();
-            }, 99 , 1 );
-        }
+        //Check if the plugin is active or not
+        if(get_option( 'notify_me_activate') !== 'true'){return;}
+      
+        //Load Button to supported plugins / pages
+        $this -> add_button();
 
-       return;
+        //Add Shortcodes
+        add_shortcode('notify_me_button', [$this, 'add_button_sc']);
+       
+        
+        $this -> set_blacklist(array(
+            'ID', 'comment_status', 'ping_status',
+            'post_password', 'to_ping', 'post_name', 'pinged', 'post_parent', 'guid',
+            'menu_order', 'post_type', 'post_mime_type', 'filter'
+        ));
+
     }
     /**
-     * Gets the Plugin Path. From the current Theme (/notify-me/templates/) or from the Plugin
-     * Structure is the same for plugin an theme
-     *
-     * @param [string] $name - Name of the template file to load
-     * @param [string] $path - Path to the templates files. Default: templates/theme/
-     * @return false on error, path on success
-     */
-    public function get_template($name,$path = 'templates/theme/'){
-        if(empty($this -> plugin_path)){ $this -> plugin_path = get_home_path() . $this -> plugin_path_relative;}
-        $tmpTheme = get_stylesheet_directory() . '/notify-me/' . $path .$name.'.php';
-        $tmp = $this -> plugin_path . $path .$name.'.php';
-        if(file_exists($tmpTheme)){return $tmpTheme;} //check if exists in Theme folder
-        if(!file_exists($tmp)){ return false;} //Not found in Theme as well as in plugin folder
-        return $tmp;
-    }
-
-    /**
-     * Loads the Javascripts into the head of the page
-     * Modifies the script type to "module"
+     * Adds the Button when it is called from a shortcode.
      *
      * @return void
      */
-    public function enqueue_scripts(){
-        if($this -> scriptsLoaded){return true;}
-        wp_enqueue_script( 'notify-me-app',$this -> plugin_url . 'scripts/notify-me-app.js',['jquery']);
-        //Set script tag "Module"
-        add_filter( 'script_loader_tag', function ( $tag, $handle, $src ) {
-            if ($handle === 'notify-me-app'){
-               return '<script type="module" src="' . esc_url( $src ) . '"></script>' . '<script>var notify_me_url = "' . esc_url($this -> plugin_url) . '"; var wp_site_url = "' . esc_url(get_site_url()) . '";</script>';
-            }else{return $tag;} 
-            }, 10, 3 );
-        //set the Site URL for JS
-        $this -> scriptsLoaded = true;
+    public function add_button_sc(){
+        echo $this -> add_button(true);
+    }
+    /**
+     * Adds the button to the Page or Event.
+     *
+     * @param boolean $returnhtml - If true, the function will not include the button to the page. Instead it will output the HTML from the template file. 
+     * @return void - bool or string
+     * @todo Check if Option for automatic include is set -> create option
+     */
+    public function add_button($returnhtml = false)
+    {
+        $this->enqueue_scripts();
+        $tmp = $this->get_template('button');
+        if ($returnhtml) {
+            return $this->load_template($tmp);
+        } else {
+            add_action('tribe_events_single_event_after_the_content', function () use ($tmp) {
+                include($tmp);
+            }, 99, 1);
+        }
+
         return;
     }
+
     /**
      * Main Method for the Ajax Calls
      *
      * @return void
      */
-    public function nm_ajax() {
+    public function nm_ajax()
+    {
         $ajax = new notify_me_ajax();
         $action =  $_REQUEST['do'];
-        switch($action){
+        switch ($action) {
             case 'save':
-                echo $ajax -> save_subscriber($_REQUEST['postid'],$_REQUEST['email']);    
-            break;
+                echo $ajax->save_subscriber($_REQUEST['postid'], $_REQUEST['email']);
+                break;
         }
         exit();
-   } 
+    }
+
+    /**
+     * Runs if a post gets updates. Sends a email to every subscriber
+     *
+     * @param [integer] $postId
+     * @param [object] $postAfter
+     * @param [object] $postBefore
+     * @return void
+     * @todo Add to the queue function, send them later to avoid issues
+     */
+    public function on_save($postId, $postAfter, $postBefore)
+    {
+        //check for subscribers
+        $subs = get_post_meta($postId, 'nm_subscribers', true);
+        if (empty($subs)) {
+            return null;
+        }
+        $subsArr = json_decode($subs);
+        //compare Changes
+        $changes = $this->compare_posts($postAfter, $postBefore);
+        if (empty($changes)) {
+            return null;
+        }
+        $tmp = $this -> get_template('compare');
+        if(empty($tmp)){return null;}
+        $changesHtml = $this -> load_template($tmp,array('postid' => $postId, 'changes' => $changes));
+
+        //Send changes mail
+        $send = new notify_me_emailer;
+        $send -> set_message_from_template(array('pageId' => $postId, 'message' => $changesHtml),'default');
+        //$send -> set_message($changesHtml);
+        $send -> set_subject(get_option('blogname') .  sprintf(__('Changes made to "%s"!'), $postBefore -> post_title));
+        
+        foreach($subsArr as $s){
+            $send -> set_receiver($s);
+            $send -> send_email();
+        }
+        return;
+
+    }
+    /**
+     * Adds the Notify-Me Settings page
+     *
+     * @return void
+     */
+    public function init_admin_menu(){
+        add_options_page ( 'Notify Me! - '.__('Settings'), 'Notify Me!', 'manage_options', 'notify-me', [$this, 'show_admin_menu'], 'none');
+    }
+    /**
+     * Loads the Template of the Admin page
+     *
+     * @return void
+     */
+    public function show_admin_menu(){
+        $tmp = $this -> get_template('admin_menu','templates/admin/');
+        echo $this -> load_template($tmp);
+
+        return;
+    }
 }
