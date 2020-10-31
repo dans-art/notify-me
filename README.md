@@ -1,1 +1,2 @@
-# the-events-calendar-notify-me
+# Notify-me!
+A easy way to stay updated.
