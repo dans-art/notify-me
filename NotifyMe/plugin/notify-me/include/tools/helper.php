@@ -13,8 +13,7 @@ class notify_me_helper
 
     public function __construct()
     {
-        $this->plugin_path = get_home_path() . $this->plugin_path_relative;
-        $this->plugin_url = get_site_url() . '/' .  $this->plugin_url_relative;
+        
     }
 
     /**
@@ -131,5 +130,46 @@ $current_slug = $wp->request;
     public function set_blacklist($array)
     {
         $this->compareBlacklist = $array;
+    }
+    /**
+     * Checks if Email adress is valid
+     *
+     * @param [type] $mail
+     * @return boolean
+     */
+    public function is_email($mail){
+        if(sanitize_email($mail) === $mail){
+            //is valid
+            return true;
+        }else{
+            return false;
+        }
+    }
+    /**
+     * Formats a message to an ERROR message. Wraps <span> around, class "nm-error"  
+     *
+     * @param [string] $msg - The message to format
+     * @return [string] - The formated message
+     */
+    public function format_error($msg){
+        return '<span class="nm-error">' . $msg . '</span>';
+    }
+    /**
+     * Formats a message to an INFO message. Wraps <span> around, class "nm-info"  
+     *
+     * @param [string] $msg - The message to format
+     * @return [string] - The formated message
+     */
+    public function format_info($msg){
+        return '<span class="nm-info">' . $msg . '</span>';
+    }
+    /**
+     * Formats a message to an SUCCESS message. Wraps <span> around, class "nm-success"  
+     *
+     * @param [string] $msg - The message to format
+     * @return [string] - The formated message
+     */
+    public function format_success($msg){
+        return '<span class="nm-success">' . $msg . '</span>';
     }
 }

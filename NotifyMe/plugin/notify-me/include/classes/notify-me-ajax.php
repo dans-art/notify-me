@@ -1,4 +1,5 @@
 <?php
+
 class notify_me_ajax {
      /**
     * Saves new subscriber to the post meta and send a confirmation mail to him
@@ -9,15 +10,20 @@ class notify_me_ajax {
     * @todo Validate input of user
     */
     public function save_subscriber($postId,$email){
-        //validate
-        if(empty($postId) OR empty($email)){return __('Please fill all fields!','notify-me');}
-        $postIdVal = (int) $postId;
-        $emailVal = $email; //Validate this!! To Do!
+        $helper = new notify_me_helper;
+        //validate inputs
+        if(empty($email)){return $helper -> format_error(__('Please fill all fields!','notify-me'));}
+        if(empty($postId)){return $helper -> format_error(__('Error: No Post ID found!','notify-me'));}
+        if($helper -> is_email($email) === false){return $helper -> format_error(__('Please enter a valid e-Mail address!','notify-me'));}
+        $postIdVal = (int) htmlspecialchars($postId);
+        $emailVal = htmlspecialchars($email);
+
+        //Check if already subscribed
         $oldSub = get_post_meta($postIdVal,'nm_subscribers',true);
         $subs = ( is_string( $oldSub ) AND empty( $oldSub ) ) ? array((string)$emailVal) : json_decode( $oldSub );
         $indb = is_integer(array_search($emailVal,$subs, true ));
         if($indb == false){$subs[] = $emailVal; }
-        if(json_decode( $oldSub ) === $subs){return __('You are already subscribed!','notify-me');}
+        if(json_decode( $oldSub ) === $subs){return $helper -> format_info(__('You are already subscribed!','notify-me'));}
         
         //Send confirmation mail
         $send = new notify_me_emailer;
@@ -27,12 +33,13 @@ class notify_me_ajax {
         $send -> set_receiver($emailVal);
         $send -> send_email();
 
-        if(!empty($send -> error)){return implode(',',$send -> error);}
+        //error handling
+        if(!empty($send -> get_errors())){return $helper -> format_error(implode(',',$send -> get_errors()));}
 
         if(false === update_post_meta($postIdVal,'nm_subscribers',json_encode($subs))){
-            return __('Error while saving subscriber','notify-me');
+            return $helper -> format_error(__('Error while saving subscriber','notify-me'));
         }else{
-        return __('Successfully subscribed!','notify-me');
+        return $helper -> format_success(__('Successfully subscribed!','notify-me'));
         }
 
 

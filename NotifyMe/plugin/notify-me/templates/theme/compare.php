@@ -3,7 +3,7 @@
  $changes = (isset($data['changes']))?$data['changes']:array();
  $postId = (isset($data['postid']))?$data['postid']:null;
 ?>
-Changes are made to the Post<br/> 
+Changes are made to the Post!<br/> 
 Post ID: <?php echo $postId;?>
 <hr/>
 <?php 

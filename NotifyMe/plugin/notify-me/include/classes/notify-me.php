@@ -6,47 +6,50 @@ class notify_me extends notify_me_helper
     public function __construct()
     {
         $adminclass = new notify_me_admin;
-      
+        $this->plugin_path = get_home_path() . $this->plugin_path_relative;
+        $this->plugin_url = get_site_url() . '/' .  $this->plugin_url_relative;
+
         //Add Actions
+        add_action('init', [$this, 'load_textdomain']); //load language 
         add_action('post_updated', [$this, 'on_save'], 10, 3);
         add_action('admin_menu', [$this, 'init_admin_menu']);
-        add_action( 'admin_init', [$adminclass, 'add_settings_section_init'] );
+        add_action('admin_init', [$adminclass, 'add_settings_section_init']);
 
         //register Ajax
         add_action('wp_ajax_nm-ajax', [$this, 'nm_ajax']);
         add_action('wp_ajax_nopriv_nm-ajax', [$this, 'nm_ajax']);
 
         //Check if the plugin is active or not
-        if(get_option( 'notify_me_activate') !== 'true'){return;}
-      
-        //Load Button to supported plugins / pages
-        $this -> add_button();
+        if (get_option('notify_me_activate') === 'true') {
+            //Load Button to supported plugins / pages
+            $this->add_button();
+        }
 
         //Add Shortcodes
-        add_shortcode('notify_me_button', [$this, 'add_button_sc']);
-       
-        
-        $this -> set_blacklist(array(
+        if (get_option('notify_me_activate_sc') === 'true') {
+            add_shortcode('notify_me_button', [$this, 'add_button_sc']);
+        }
+
+        $this->set_blacklist(array(
             'ID', 'comment_status', 'ping_status',
             'post_password', 'to_ping', 'post_name', 'pinged', 'post_parent', 'guid',
             'menu_order', 'post_type', 'post_mime_type', 'filter'
         ));
-
     }
     /**
      * Adds the Button when it is called from a shortcode.
      *
      * @return void
      */
-    public function add_button_sc(){
-        echo $this -> add_button(true);
+    public function add_button_sc()
+    {
+        echo $this->add_button(true);
     }
     /**
      * Adds the button to the Page or Event.
      *
      * @param boolean $returnhtml - If true, the function will not include the button to the page. Instead it will output the HTML from the template file. 
      * @return void - bool or string
-     * @todo Check if Option for automatic include is set -> create option
      */
     public function add_button($returnhtml = false)
     {
@@ -102,40 +105,58 @@ class notify_me extends notify_me_helper
         if (empty($changes)) {
             return null;
         }
-        $tmp = $this -> get_template('compare');
-        if(empty($tmp)){return null;}
-        $changesHtml = $this -> load_template($tmp,array('postid' => $postId, 'changes' => $changes));
+        $tmp = $this->get_template('compare');
+        if (empty($tmp)) {
+            return null;
+        }
+        $changesHtml = $this->load_template($tmp, array('postid' => $postId, 'changes' => $changes));
 
         //Send changes mail
         $send = new notify_me_emailer;
-        $send -> set_message_from_template(array('pageId' => $postId, 'message' => $changesHtml),'default');
+        $send->set_message_from_template(array('pageId' => $postId, 'message' => $changesHtml), 'default');
         //$send -> set_message($changesHtml);
-        $send -> set_subject(get_option('blogname') .  sprintf(__('Changes made to "%s"!'), $postBefore -> post_title));
-        
-        foreach($subsArr as $s){
-            $send -> set_receiver($s);
-            $send -> send_email();
+        $send->set_subject(get_option('blogname') .  sprintf(__('Changes made to "%s"!'), $postBefore->post_title));
+
+        foreach ($subsArr as $s) {
+            $send->set_receiver($s);
+            $send->send_email();
         }
         return;
-
     }
     /**
      * Adds the Notify-Me Settings page
      *
      * @return void
      */
-    public function init_admin_menu(){
-        add_options_page ( 'Notify Me! - '.__('Settings'), 'Notify Me!', 'manage_options', 'notify-me', [$this, 'show_admin_menu'], 'none');
+    public function init_admin_menu()
+    {
+        add_options_page('Notify Me! - ' . __('Settings'), 'Notify Me!', 'manage_options', 'notify-me', [$this, 'show_admin_menu'], 'none');
     }
     /**
      * Loads the Template of the Admin page
      *
      * @return void
      */
-    public function show_admin_menu(){
-        $tmp = $this -> get_template('admin_menu','templates/admin/');
-        echo $this -> load_template($tmp);
+    public function show_admin_menu()
+    {
+        $tmp = $this->get_template('admin_menu', 'templates/admin/');
+        echo $this->load_template($tmp);
 
         return;
+    }
+
+    /**
+     * Loads the notify-me textdomain.
+     * Tries first to load from template dir, on failure it loads from plugin dir.
+     *
+     * @return void
+     */
+    public function load_textdomain()
+    {
+        //Try to load from theme dir first
+        if (load_textdomain('notify-me', get_stylesheet_directory() . '/notify-me/' . 'languages/notify-me-' . determine_locale() . '.mo') === false) {
+            //Load it from the plugins dir
+            load_textdomain('notify-me', $this->plugin_path . 'languages/notify-me-' . determine_locale() . '.mo');
+        }
     }
 }

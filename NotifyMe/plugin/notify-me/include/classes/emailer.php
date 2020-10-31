@@ -11,8 +11,8 @@ class notify_me_emailer extends notify_me{
     public $error = array();
     
     public function __construct(){
+        $this -> set_sender();
         //Temp
-        $this -> set_sender("spy015@gmail.com");
         $this -> set_receiver("spy015@gmail.com");
     }
     /**
@@ -68,9 +68,16 @@ class notify_me_emailer extends notify_me{
      * @param [string] $sender - a valid email adress
      * @return void
      */
-    public function set_sender($sender)
+    public function set_sender($sender = null)
     {
-        $this->sender = $sender;
+        if($sender === null and $this -> is_email(get_option( 'notify_me_email_from' ))){
+            $this->sender = get_option( 'notify_me_email_from' );
+        }elseif($this -> is_email($sender)){
+            $this->sender = $sender;
+        }
+        else{
+            $this -> error[] = __('Invalid sender email set','notify-me');;
+        }
     }
     /**
      * Returns the errors
@@ -90,7 +97,7 @@ class notify_me_emailer extends notify_me{
     public function send_email()
     {
         if(empty($this -> sender) OR empty($this -> reciver) OR empty($this -> subject) OR empty($this -> message)){
-            $this -> error[] = 'Some of the required options are not set.';
+            $this -> error[] = __('Some of the required options are not set.','notify-me');
             return false;
         }
         //reset errors
