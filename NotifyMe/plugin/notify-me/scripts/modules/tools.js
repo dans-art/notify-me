@@ -1,0 +1,1 @@
+export const s=o=>{console.log(o)};

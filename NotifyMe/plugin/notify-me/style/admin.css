@@ -1,0 +1,61 @@
+/*
+  Plugin: Notify Me!
+  Author: dansart
+ */
+/* Fonts
+   ========================================================================== */
+/* Breakpoints
+   ========================================================================== */
+/* Colors
+   ========================================================================== */
+/* ==========================================================================
+   #PAGE
+   ========================================================================== */
+/**
+ * Simple page-level setup.
+ *
+ */
+/* ==========================================================================
+   #HEADINGS
+   ========================================================================== */
+/**
+ * Simple default styles for headings 1 through 6. Anything more opinionated
+ * than simple font-size changes should likely be applied via classes (see:
+ * http://csswizardry.com/2016/02/managing-typography-on-large-apps/).
+ */
+/* ==========================================================================
+   #IMAGES
+   ========================================================================== */
+/**
+ * 1. Fluid images for responsive purposes.
+ * 2. Offset `alt` text from surrounding copy.
+ * 3. Setting `vertical-align` removes the whitespace that appears under `img`
+ *    elements when they are dropped into a page as-is. Safer alternative to
+ *    using `display: block;`.
+ */
+/* ==========================================================================
+   #HEADER
+   ========================================================================== */
+/* ==========================================================================
+   #BOX-SIZING
+   ========================================================================== */
+/**
+ * More sensible default box-sizing:
+ * css-tricks.com/inheriting-box-sizing-probably-slightly-better-best-practice
+ */
+/* ==========================================================================
+   #RESET
+   ========================================================================== */
+/**
+ * A very simple reset that sits on top of Normalize.css.
+ */
+/*@import 'tools/*';
+@import 'generic/*';
+@import 'elements/*';
+@import 'vendor/*';
+@import 'objects/*';
+@import 'components/*';
+@import 'utilities/*';
+*/
+
+/*# sourceMappingURL=admin.css.map */
