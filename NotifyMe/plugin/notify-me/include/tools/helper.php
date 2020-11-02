@@ -4,16 +4,22 @@ include_once('kint.phar');
 
 class notify_me_helper
 {
+    protected $version = '0.1';
+
     protected $scriptsLoaded = false;
     protected $plugin_url = '';
-    protected $plugin_path = '';
+    public $plugin_path = '';
     protected $plugin_path_relative = 'wp-content/plugins/notify-me/';
     protected $plugin_url_relative = 'wp-content/plugins/notify-me/';
     protected $compareBlacklist = array();
+    protected $admin_errors = array();
+    protected $admin_infos = array();
+    
+
 
     public function __construct()
     {
-        
+
     }
 
     /**
@@ -172,4 +178,87 @@ $current_slug = $wp->request;
     public function format_success($msg){
         return '<span class="nm-success">' . $msg . '</span>';
     }
+
+    /**
+     * Reads out all the admin errors. Errors are getting deleted after readout. 
+     *add_action( 'admin_notices', [$this, 'get_admin_errors'] );
+     * 
+     * @return void
+     */
+    public function get_admin_errors(){
+        if(!empty($this -> admin_errors)){
+            foreach($this -> admin_errors as $e){
+                print('<div class="notice error"><p>Notify-Me: ');
+                print($e);
+                print('</p></div>');
+            }
+        }
+        $this -> admin_errors = array();
+    }
+    /**
+     * Reads out all the admin Infos. Infos are getting deleted after readout. 
+     *  add_action( 'admin_notices', [$this, 'get_admin_infos'] );
+     *
+     * @return void
+     */
+    public function get_admin_infos(){
+        if(!empty($this -> admin_infos)){
+            foreach($this -> admin_infos as $i){
+                print('<div class="notice info"><p>Notify-Me: ');
+                print($i);
+                print('</p></div>');
+            }
+        }
+        $this -> admin_infos = array();
+    }
+
+    /**
+     * Checks if the Verion of the Plugin. Runs on activation of the plugin and on the admin menu. 
+     * Displays admin Error if plugin is older than installed version.
+     *
+     * @return [mixed] true if plugin and db version is the same, false if not, null if not defined
+     */
+    public function version_checker(){
+        $instvers = get_option('nm_version');
+        if(empty($instvers)){
+            return null;
+        }
+        if($instvers === $this -> version){
+            return true;
+        }
+        if($instvers < $this -> version){
+            return false;
+        }
+        if($instvers > $this -> version){
+            $this -> admin_errors[] = __('Version missmatch! Please update your Plugin','notify-me');
+           return false;
+        }
+
+    }
+    /**
+     * Updates the Version and Database. Updates only if the plugin version is newer than the installed version.
+     * Use version_checker first.
+     *
+     * @return [bool] true on success, false if update failed. 
+     */
+    public function update_version(){
+        $instvers = get_option('nm_version');
+        if(empty($instvers)){
+            update_option('nm_version', $this -> version);
+        }
+        if($instvers < $this -> version){
+            $db = new notify_me_db;
+            if($db -> update_db()){
+                $this -> admin_infos = array_merge($this -> admin_infos, $db -> admin_infos);
+                return true;
+            }
+            else{
+                $this -> admin_errors = array_merge($this -> admin_errors, $db -> admin_errors);
+                return false;
+            }
+        }
+        return false;
+       
+    }
+
 }

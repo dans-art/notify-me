@@ -14,6 +14,10 @@ class notify_me extends notify_me_helper
         add_action('post_updated', [$this, 'on_save'], 10, 3);
         add_action('admin_menu', [$this, 'init_admin_menu']);
         add_action('admin_init', [$adminclass, 'add_settings_section_init']);
+        add_action('nm_cron_event', array($this, 'nm_cron_run')); 
+
+        register_activation_hook( $this->plugin_path . 'notify-me.php', [$this, 'activate_plugin'] );
+        register_deactivation_hook( $this->plugin_path . 'notify-me.php', [$this, 'deactivate_plugin'] );
 
         //register Ajax
         add_action('wp_ajax_nm-ajax', [$this, 'nm_ajax']);
@@ -84,7 +88,7 @@ class notify_me extends notify_me_helper
     }
 
     /**
-     * Runs if a post gets updates. Sends a email to every subscriber
+     * Runs if a post gets updates. Saves the entry to the notify-me database
      *
      * @param [integer] $postId
      * @param [object] $postAfter
@@ -100,11 +104,54 @@ class notify_me extends notify_me_helper
             return null;
         }
         $subsArr = json_decode($subs);
+        
         //compare Changes
         $changes = $this->compare_posts($postAfter, $postBefore);
         if (empty($changes)) {
             return null;
         }
+
+        //Add Users to quere
+        $db = new notify_me_db;
+        foreach ($subsArr as $email) {
+            $db -> add_entry($postId,$email,json_encode($changes),1);
+        }
+       
+        return;
+    }
+
+    /**
+     * Send the mails to the subscribers
+     * 
+     *
+     * @return void
+     * @todo Add a Limit of posts to send
+     */
+    public function send_mails(){
+        $db = new notify_me_db;
+        //get post ids from DB
+        $items = $db -> get_mails_to_send();
+        $ret = array();
+        if(!empty($items)){
+            foreach($items as $id => $it){
+                $ret[$id] = $this -> send_mail_to_subscriber($it -> email, $it -> post_id, json_decode($it -> changes,true));
+                if($ret[$id] === true){
+                    $db -> update_to_send_entry($it -> id,0);
+                }
+            }
+        }
+        return $ret;
+
+    }
+    /**
+     * Sends a mail with the changes to the subscriber
+     *
+     * @param [string] $email - email of the subscriber
+     * @param [interger] $postId - Post ID of the post, which got updated
+     * @param [array] $changes - Array of changes arra(array('oldVal','newVal'), array....)
+     * @return [bool] true on success, false on error
+     */
+    public function send_mail_to_subscriber($email, $postId,$changes){
         $tmp = $this->get_template('compare');
         if (empty($tmp)) {
             return null;
@@ -115,14 +162,22 @@ class notify_me extends notify_me_helper
         $send = new notify_me_emailer;
         $send->set_message_from_template(array('pageId' => $postId, 'message' => $changesHtml), 'default');
         //$send -> set_message($changesHtml);
-        $send->set_subject(get_option('blogname') .  sprintf(__('Changes made to "%s"!'), $postBefore->post_title));
+        $oldTitle = (isset($changes['post_title'][0]))?$changes['post_title'][0]:get_the_title($postId);
+        
+        $send->set_subject(get_option('blogname') . '  ' .  sprintf(__('Changes made to "%s"!'), $oldTitle));
+        $send -> set_receiver($email);
+        return $send -> send_email();
 
-        foreach ($subsArr as $s) {
-            $send->set_receiver($s);
-            $send->send_email();
-        }
-        return;
     }
+    /**
+     * Main function to run the cron jobs.
+     *
+     * @return void
+     */
+    public function nm_cron_run(){
+        $this -> send_mails();
+    }
+
     /**
      * Adds the Notify-Me Settings page
      *
@@ -131,6 +186,7 @@ class notify_me extends notify_me_helper
     public function init_admin_menu()
     {
         add_options_page('Notify Me! - ' . __('Settings'), 'Notify Me!', 'manage_options', 'notify-me', [$this, 'show_admin_menu'], 'none');
+
     }
     /**
      * Loads the Template of the Admin page
@@ -158,5 +214,31 @@ class notify_me extends notify_me_helper
             //Load it from the plugins dir
             load_textdomain('notify-me', $this->plugin_path . 'languages/notify-me-' . determine_locale() . '.mo');
         }
+    }
+
+/**
+ * Check on activation of the plugin if the right version is installed
+ * Sets the shedule for the cron job
+ *
+ * @return void
+ * @todo Allow user to set the frequency of the wp_shedule_event
+ */
+    public function activate_plugin() {
+
+        if(empty(get_option( 'nm_version'))){
+            $db = new notify_me_db;
+            $db -> create_db();
+        }
+        wp_schedule_event( time(), 'hourly', 'nm_cron_event');
+             
+    }
+    /**
+     * Runs if the Plugin gets deactivated
+     * Deletes the shedule of the cron job
+     *
+     * @return void
+     */
+    public function deactivate_plugin(){
+        wp_clear_scheduled_hook( 'nm_cron_event' );
     }
 }

@@ -6,7 +6,8 @@
 Die änderungen:!<br/> 
 Post ID: <?php echo $postId;?>
 <hr/>
-<?php 
+<?php
+if(!is_array($changes)){$changes = json_decode($changes);} 
 foreach($data['changes'] as $k => $vs){
     echo $k;
     echo '<br/>';

@@ -3,7 +3,7 @@ msgstr ""
 "Project-Id-Version: Notify Me!\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2020-10-31 20:56+0000\n"
-"PO-Revision-Date: 2020-11-02 06:33+0000\n"
+"PO-Revision-Date: 2020-10-31 22:08+0000\n"
 "Last-Translator: Daniel Spycher\n"
 "Language-Team: Deutsch\n"
 "Language: de_DE\n"
@@ -16,7 +16,9 @@ msgstr ""
 
 #: include/classes/notify-me-admin.php:20
 msgid "Activate Notify-Me!"
-msgstr "Aktiviere automatisches Einbinden."
+msgstr ""
+"Wenn angewählt, werden die Shortcodes aktiviert.<br/>Verfügbare Shortcodes: "
+"[notify_me_button]"
 
 #: include/classes/notify-me-admin.php:37
 msgid "Activate Notify-Me! Shortcodes"

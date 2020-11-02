@@ -4,6 +4,13 @@ class notify_me_admin extends notify_me_helper
 
     public function __construct()
     {
+
+        if($this -> version_checker() !== true){
+            $this -> update_version();
+        }
+        add_action( 'admin_notices', [$this, 'get_admin_errors']);
+        add_action( 'admin_notices', [$this, 'get_admin_infos']);
+
     }
 
     public function add_settings_section_init()

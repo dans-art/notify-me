@@ -1,4 +1,5 @@
 <?php 
+
 /**
  * Class for sending and preparing emails
  */
@@ -60,6 +61,7 @@ class notify_me_emailer extends notify_me{
      */
     public function set_receiver($reciver)
     {
+        if($this -> is_email($reciver) !== true){return false;}
         $this->reciver = $reciver;
     }
     /**
@@ -107,7 +109,6 @@ class notify_me_emailer extends notify_me{
         $headers .= "From: " . $this->sender . "\r\n";
         $headers .= "Reply-to:" . $this->sender . "\r\n";
         $headers .= 'Content-type: text/html; charset=UTF-8' . "\r\n";
-
         if (@wp_mail($this->reciver,  $this->subject,  $this->message, $headers)) {
             return true;
         } else {
