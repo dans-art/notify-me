@@ -13,8 +13,6 @@ class notify_me_emailer extends notify_me{
     
     public function __construct(){
         $this -> set_sender();
-        //Temp
-        $this -> set_receiver("spy015@gmail.com");
     }
     /**
      * Set the Subject of the Message
@@ -71,14 +69,15 @@ class notify_me_emailer extends notify_me{
      * @return void
      */
     public function set_sender($sender = null)
-    {
-        if($sender === null and $this -> is_email(get_option( 'notify_me_email_from' ))){
-            $this->sender = get_option( 'notify_me_email_from' );
+    {   
+        $defaultSender = get_option('admin_email');
+        if($sender === null and $this -> is_email(get_option( 'notify_me_email_from', $defaultSender ))){
+            $this->sender = get_option( 'notify_me_email_from' ,$defaultSender );
         }elseif($this -> is_email($sender)){
             $this->sender = $sender;
         }
         else{
-            $this -> error[] = __('Invalid sender email set','notify-me');;
+            $this -> error[] = __('Invalid sender email set','notify-me');
         }
     }
     /**

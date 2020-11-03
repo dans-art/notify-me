@@ -2,14 +2,19 @@
 
 class notify_me_db extends notify_me_helper{
 
-    public $tableName = '';
+    public $table_name = '';
 
     public function __construct()
     {
         global $wpdb;
-        $this -> tableName = $wpdb-> prefix. 'notify_me'; 
+        $this -> table_name = $wpdb-> prefix. 'notify_me'; 
     }
 
+    /**
+     * Updates the database. Checks for the version stored in the DB.
+     *
+     * @return void
+     */
     public function update_db(){
         $v = (string) $this -> version;
         switch($v){
@@ -40,7 +45,7 @@ class notify_me_db extends notify_me_helper{
         global $wpdb;
         $charset_collate = $wpdb->get_charset_collate();
 
-        $sql = "CREATE TABLE ".$this -> tableName." (
+        $sql = "CREATE TABLE ".$this -> table_name." (
         id bigint(20) NOT NULL AUTO_INCREMENT,
         post_id bigint(20) NOT NULL,
         time_sent datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
@@ -57,84 +62,131 @@ class notify_me_db extends notify_me_helper{
     }
 
     /**
-     * Adds a new entry to the database.
+     * Adds a new entry to the database / queue.
+     * Overrides a existing entry with the same post_id and email if there are to_send === 1
      * 
-     * @param [type] $postId - Id of a post
-     * @param [type] $email - email of the subscriber
-     * @param integer $toSend - If the email has to be send or no.
-     * @param [string] $oldContent - Json of the old content eg: {'post_content' : 'Old content of the post'}
+     * @param [integer] $post_id - Id of a post
+     * @param [string] $email - email of the subscriber
+     * @param [integer] $to_send - If the email has to be send or no.
+     * @param [string] $old_content - Json of the old content eg: {'post_content' : 'Old content of the post'}
      * @return [bool] true on success, false if email is not valid or insert was not successfully.
-     * @todo Check if entry with (to_send === 1) exists, and override it instead of adding a new one.
      */
-    public function add_entry($postId, $email, $oldContent, $toSend = 1 ){
+    public function add_entry($post_id, $email, $old_content, $to_send = 1 ){
         global $wpdb;
         $data = array();
-        $data['post_id'] = (int) $postId;
-        $data['to_send'] = (int) $toSend;
-        $data['changes'] = $oldContent;
-
-        if($this -> check_user($postId,$email) === false){
-            return false;
-        }
-
+        $data['post_id'] = (int) $post_id;
+        $data['to_send'] = (int) $to_send;
+        $data['changes'] = $old_content;
+        
         if($this -> is_email($email)){
             $data['email'] = htmlspecialchars($email);
         }else{
             return false;
         }
-        if($wpdb -> insert($this -> tableName,$data) !== false){
+        $where = array('email' => $data['email'], 'post_id' => $data['post_id'], 'to_send' => 1);
+        
+        //Try to update, if fails, try to insert
+        if($wpdb -> update($this -> table_name, $data, $where) > 0){
+            return true;
+        }else if($wpdb -> insert($this -> table_name, $data) !== false){
             return true;
         }else{
             return false;
+        }
+    }
+    /**
+     * Removes a entry form the database / queue.
+     *
+     * @param [mixed] $post_id - Post Id to remove a individual entry or 'all' to remove all entries with the email set.
+     * @param [string] $email - email of the subscriber
+     * @return [bool] true on success, false if email is not valid or insert was not successfully.
+     */
+    public function remove_entry($post_id,$email){
+        global $wpdb;
+        
+        if($this -> is_email($email)){
+            $email = htmlspecialchars($email);
+        }else{
+            return false;
+        }
+        if($post_id === 'all'){
+            $where = array('email' => $email);
+        }else{
+            $where = array('email' => $email, 'post_id' => (int) $post_id);
+        }
+        if($wpdb -> delete($this -> table_name, $where) > 0){
+            return true;
+        }else{
+            return false;
+        }
+    }
+
+    public function remove_subscriber($post_id,$email){
+        global $wpdb;
+        //get all posts with the subscriber
+        if($this -> is_email($email)){
+            $email = htmlspecialchars($email);
+        }else{
+            return __('Invalid email','notify-me');
+        }
+        $like = '%'.$email.'%';
+        $where_and = ($post_id === 'all')?'':' AND `post_id` = '.(int) $post_id;
+        $query = 'SELECT `post_id`, `meta_value` FROM '.$wpdb -> prefix .'postmeta WHERE `meta_key` = %s AND `meta_value` LIKE %s %s';
+        $result = $wpdb -> get_results($wpdb -> prepare(
+            $query, 'nm_subscribers' ,$like, $where_and
+        ));
+        if(!empty($result)){
+            $count = 0;
+            foreach($result as $obj){
+                if(isset($obj -> meta_value)){
+                    $to_arr = json_decode($obj -> meta_value);
+                    if(is_array($to_arr)){
+                        $new_value = array_diff($to_arr,[$email]);
+                        $new_value_no_index = array_values($new_value);
+                        $new_data = json_encode($new_value_no_index);
+                        if(update_post_meta($obj -> post_id,'nm_subscribers',$new_data)){
+                            $count++;
+                        }
+                    }
+                }
+            }
+            return $count;
+        }else{
+            return null;
         }
     }
 
     /**
      * Updates the 'to_send' field in the database.
      *
-     * @param [integer] $entryId - Id of the entry (not Post_id!)
-     * @param [bool] $toSend - 1 or 0
+     * @param [integer] $entry_id - Id of the entry (not Post_id!)
+     * @param [bool] $to_send - 1 or 0
      * @return [bool] true on success, false on error
      */
-    public function update_to_send_entry($entryId,$toSend){
+    public function update_to_send_entry($entry_id,$to_send){
         global $wpdb;
         $data = array();
-        $data['to_send'] = (int) $toSend;
+        $data['to_send'] = (int) $to_send;
         $data['time_sent'] = date('Y-m-d H:i:s');
-        $where = array('id' => $entryId);
+        $where = array('id' => $entry_id);
        
-        if($wpdb -> update($this -> tableName,$data,$where) !== false){
+        if($wpdb -> update($this -> table_name,$data,$where) !== false){
             return true;
         }else{
             return false;
         }
     }
 
-    /**
-     * Checks if user is already in the database for this post
-     *
-     * @param [integer] $postId
-     * @param [string] $email - The email to check
-     * @return void
-     */
-    public function check_user($postId, $email){
-        global $wpdb;
-        if($this -> is_email($email) === false){return false;}
-        $query = 'SELECT `id` FROM '.$this -> tableName.' WHERE `post_id` = %s AND `email` = %s';
-        $result = $wpdb -> get_results($wpdb -> prepare(
-            $query, $postId, $email
-        ));
-        return (empty($result))?false:true;
-    }
    /**
     * Get all the entries from the DB, wich are not sent yet.
     * Returns Object 
     * @return [mixed] false on error, result on success.
+    * @todo Add "limit" option to options page 
     */
     public function get_mails_to_send(){
         global $wpdb;
         $limit = 7;
-        $query = 'SELECT `id`, `post_id`, `email`, `changes` FROM '.$this -> tableName.' WHERE `to_send` = 1 ORDER BY `id` ASC LIMIT %d';
+        $query = 'SELECT `id`, `post_id`, `email`, `changes` FROM '.$this -> table_name.' WHERE `to_send` = 1 ORDER BY `id` ASC LIMIT %d';
         $result = $wpdb -> get_results($wpdb -> prepare(
             $query, $limit
         ));

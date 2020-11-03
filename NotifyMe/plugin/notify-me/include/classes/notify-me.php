@@ -3,6 +3,11 @@
 class notify_me extends notify_me_helper
 {
 
+    /**
+     * Loads all the necessary stuff for the plugin
+     * Add Actions, register hooks, set default properties, 
+     * checks if the plugin auto includes the field in frontend or not.
+     */
     public function __construct()
     {
         $adminclass = new notify_me_admin;
@@ -14,10 +19,10 @@ class notify_me extends notify_me_helper
         add_action('post_updated', [$this, 'on_save'], 10, 3);
         add_action('admin_menu', [$this, 'init_admin_menu']);
         add_action('admin_init', [$adminclass, 'add_settings_section_init']);
-        add_action('nm_cron_event', array($this, 'nm_cron_run')); 
+        add_action('nm_cron_event', array($this, 'nm_cron_run'));
 
-        register_activation_hook( $this->plugin_path . 'notify-me.php', [$this, 'activate_plugin'] );
-        register_deactivation_hook( $this->plugin_path . 'notify-me.php', [$this, 'deactivate_plugin'] );
+        register_activation_hook($this->plugin_path . 'notify-me.php', [$this, 'activate_plugin']);
+        register_deactivation_hook($this->plugin_path . 'notify-me.php', [$this, 'deactivate_plugin']);
 
         //register Ajax
         add_action('wp_ajax_nm-ajax', [$this, 'nm_ajax']);
@@ -32,6 +37,7 @@ class notify_me extends notify_me_helper
         //Add Shortcodes
         if (get_option('notify_me_activate_sc') === 'true') {
             add_shortcode('notify_me_button', [$this, 'add_button_sc']);
+            add_shortcode('notify_me_manage_subscription', [$this, 'manage_subscription']);
         }
 
         $this->set_blacklist(array(
@@ -41,9 +47,10 @@ class notify_me extends notify_me_helper
         ));
     }
     /**
-     * Adds the Button when it is called from a shortcode.
+     * Outputs the Button when it is called from a shortcode.
+     * Use [notify_me_button]
      *
-     * @return void
+     * @return [string] - Html Code of the Button. From template templates/theme/button.php
      */
     public function add_button_sc()
     {
@@ -52,18 +59,19 @@ class notify_me extends notify_me_helper
     /**
      * Adds the button to the Page or Event.
      *
-     * @param boolean $returnhtml - If true, the function will not include the button to the page. Instead it will output the HTML from the template file. 
-     * @return void - bool or string
+     * @param boolean $return_html - If true, the function will not include the button to the page. 
+     *                              Instead it will output the HTML from the template file. (templates/theme/button.php) 
+     * @return [mixed] - bool or string
      */
-    public function add_button($returnhtml = false)
+    public function add_button($return_html = false)
     {
         $this->enqueue_scripts();
-        $tmp = $this->get_template('button');
-        if ($returnhtml) {
-            return $this->load_template($tmp);
+        $template = $this->get_template('button');
+        if ($return_html) {
+            return $this->load_template($template);
         } else {
-            add_action('tribe_events_single_event_after_the_content', function () use ($tmp) {
-                include($tmp);
+            add_action('tribe_events_single_event_after_the_content', function () use ($template) {
+                include($template);
             }, 99, 1);
         }
 
@@ -71,9 +79,9 @@ class notify_me extends notify_me_helper
     }
 
     /**
-     * Main Method for the Ajax Calls
+     * Main Method for handling the Ajax Calls
      *
-     * @return void
+     * @return [string] echoes the output of the ajax function
      */
     public function nm_ajax()
     {
@@ -88,94 +96,93 @@ class notify_me extends notify_me_helper
     }
 
     /**
-     * Runs if a post gets updates. Saves the entry to the notify-me database
+     * Runs if a post gets updates. Saves the entry to the notify-me queue
      *
-     * @param [integer] $postId
-     * @param [object] $postAfter
-     * @param [object] $postBefore
-     * @return void
-     * @todo Add to the queue function, send them later to avoid issues
+     * @param [integer] $post_id
+     * @param [object] $post_after
+     * @param [object] $post_before
+     * @return [void]
      */
-    public function on_save($postId, $postAfter, $postBefore)
+    public function on_save($post_id, $post_after, $post_before)
     {
         //check for subscribers
-        $subs = get_post_meta($postId, 'nm_subscribers', true);
+        $subs = get_post_meta($post_id, 'nm_subscribers', true);
         if (empty($subs)) {
             return null;
         }
-        $subsArr = json_decode($subs);
-        
+        $subs_arr = json_decode($subs);
+
         //compare Changes
-        $changes = $this->compare_posts($postAfter, $postBefore);
+        $changes = $this->compare_posts($post_after, $post_before);
         if (empty($changes)) {
             return null;
         }
 
         //Add Users to quere
         $db = new notify_me_db;
-        foreach ($subsArr as $email) {
-            $db -> add_entry($postId,$email,json_encode($changes),1);
+        foreach ($subs_arr as $email) {
+            $db->add_entry($post_id, $email, json_encode($changes), 1);
         }
-       
+
         return;
     }
 
     /**
      * Send the mails to the subscribers
-     * 
+     * Called by cron job.
      *
      * @return void
-     * @todo Add a Limit of posts to send
      */
-    public function send_mails(){
+    public function send_mails()
+    {
         $db = new notify_me_db;
         //get post ids from DB
-        $items = $db -> get_mails_to_send();
-        $ret = array();
-        if(!empty($items)){
-            foreach($items as $id => $it){
-                $ret[$id] = $this -> send_mail_to_subscriber($it -> email, $it -> post_id, json_decode($it -> changes,true));
-                if($ret[$id] === true){
-                    $db -> update_to_send_entry($it -> id,0);
+        $items = $db->get_mails_to_send();
+        if (!empty($items)) {
+            foreach ($items as $id => $it) {
+                $send = $this->send_mail_to_subscriber($it->email, $it->post_id, json_decode($it->changes, true));
+                if ($send === true) {
+                    $db->update_to_send_entry($it->id, 0);
                 }
             }
         }
-        return $ret;
-
+        return;
     }
     /**
      * Sends a mail with the changes to the subscriber
      *
      * @param [string] $email - email of the subscriber
-     * @param [interger] $postId - Post ID of the post, which got updated
+     * @param [interger] $post_id - Post ID of the post, which got updated
      * @param [array] $changes - Array of changes arra(array('oldVal','newVal'), array....)
      * @return [bool] true on success, false on error
+     * @todo fix pageId / postid confusion -> use only post_id!
      */
-    public function send_mail_to_subscriber($email, $postId,$changes){
-        $tmp = $this->get_template('compare');
-        if (empty($tmp)) {
+    public function send_mail_to_subscriber($email, $post_id, $changes)
+    {
+        $template = $this->get_template('compare');
+        if (empty($template)) {
             return null;
         }
-        $changesHtml = $this->load_template($tmp, array('postid' => $postId, 'changes' => $changes));
+        $changesHtml = $this->load_template($template, array('postid' => $post_id, 'changes' => $changes));
 
         //Send changes mail
         $send = new notify_me_emailer;
-        $send->set_message_from_template(array('pageId' => $postId, 'message' => $changesHtml), 'default');
+        $send->set_message_from_template(array('pageId' => $post_id, 'message' => $changesHtml), 'default');
         //$send -> set_message($changesHtml);
-        $oldTitle = (isset($changes['post_title'][0]))?$changes['post_title'][0]:get_the_title($postId);
-        
-        $send->set_subject(get_option('blogname') . '  ' .  sprintf(__('Changes made to "%s"!'), $oldTitle));
-        $send -> set_receiver($email);
-        return $send -> send_email();
+        $oldTitle = (isset($changes['post_title'][0])) ? $changes['post_title'][0] : get_the_title($post_id);
 
+        $send->set_subject(get_option('blogname') . '  ' .  sprintf(__('Changes made to "%s"!'), $oldTitle));
+        $send->set_receiver($email);
+        return $send->send_email();
     }
     /**
      * Main function to run the cron jobs.
      *
      * @return void
      */
-    public function nm_cron_run(){
-        $this -> send_mails();
+    public function nm_cron_run()
+    {
+        $this->send_mails();
     }
 
     /**
@@ -186,7 +193,6 @@ class notify_me extends notify_me_helper
     public function init_admin_menu()
     {
         add_options_page('Notify Me! - ' . __('Settings'), 'Notify Me!', 'manage_options', 'notify-me', [$this, 'show_admin_menu'], 'none');
-
     }
     /**
      * Loads the Template of the Admin page
@@ -195,8 +201,8 @@ class notify_me extends notify_me_helper
      */
     public function show_admin_menu()
     {
-        $tmp = $this->get_template('admin_menu', 'templates/admin/');
-        echo $this->load_template($tmp);
+        $template = $this->get_template('admin_menu', 'templates/admin/');
+        echo $this->load_template($template);
 
         return;
     }
@@ -216,21 +222,22 @@ class notify_me extends notify_me_helper
         }
     }
 
-/**
- * Check on activation of the plugin if the right version is installed
- * Sets the shedule for the cron job
- *
- * @return void
- * @todo Allow user to set the frequency of the wp_shedule_event
- */
-    public function activate_plugin() {
+    /**
+     * Check on activation of the plugin if the right version is installed
+     * Sets the shedule for the cron job
+     *
+     * @return void
+     * @todo Allow user to set the frequency of the wp_shedule_event
+     */
+    public function activate_plugin()
+    {
 
-        if(empty(get_option( 'nm_version'))){
+        if (empty(get_option('nm_version'))) {
             $db = new notify_me_db;
-            $db -> create_db();
+            $db->create_db();
         }
-        wp_schedule_event( time(), 'hourly', 'nm_cron_event');
-             
+        wp_schedule_event(time(), 'hourly', 'nm_cron_event');
+        $this->setup_frontend_page();
     }
     /**
      * Runs if the Plugin gets deactivated
@@ -238,7 +245,61 @@ class notify_me extends notify_me_helper
      *
      * @return void
      */
-    public function deactivate_plugin(){
-        wp_clear_scheduled_hook( 'nm_cron_event' );
+    public function deactivate_plugin()
+    {
+        wp_clear_scheduled_hook('nm_cron_event');
+    }
+    /**
+     * Creates a new Page with the shortcode [notify_me_manage_subscription] as its content
+     * Checks if the page is already set in options. Runs on Plugin activation.
+     *
+     * @return void
+     */
+    public function setup_frontend_page()
+    {
+        $current_page = get_option('notify_me_manage_subscription_page');
+        if (empty($current_page) or get_post($current_page) === null) {
+            $new_page = array('post_title' => __('Notify Me! - Manage Subscription', 'notify-me'), 'post_status' => 'publish', 'post_type' => 'page', 'post_content' => '[notify_me_manage_subscription]');
+            $page = wp_insert_post($new_page);
+            update_option('notify_me_manage_subscription_page', $page);
+        }
+    }
+    /**
+     * Main Method for managing Subscriptions. Called by shortcode [notify_me_manage_subscription]
+     *
+     * @return void
+     */
+    public function manage_subscription()
+    {
+        $to_do = (isset($_REQUEST['do']) and !empty($_REQUEST['do'])) ? $_REQUEST['do'] : 'none';
+        switch ($to_do) {
+            case 'unsubscribe':
+                return $this->delete_subscription();
+                break;
+        }
+        return;
+    }
+    /**
+     * Removes a subscriber for the subscribers postmeta and notify-me queue
+     *
+     * @return void
+     * @todo Allow to delete only single posts (instead of all)
+     * @todo Plural success message
+     */
+    public function delete_subscription()
+    {
+        $post_id = (isset($_REQUEST['post']) and !empty($_REQUEST['post'])) ? $_REQUEST['post'] : null;
+        $email = (isset($_REQUEST['email']) and !empty($_REQUEST['email'])) ? $_REQUEST['email'] : null;
+
+        if (empty($post_id) or empty($email)) {
+            return __('Could not unsubscribe because there are some informations missing.', 'notify-me');
+        }
+        $db = new notify_me_db;
+        $remove_sub = $db->remove_subscriber($post_id, $email);
+        if($remove_sub > 0){
+            echo sprintf(__('You are successfully unsubscribed to %s posts', 'notify-me'),$remove_sub);
+        }
+        $db->remove_entry($post_id, $email);
+        return;
     }
 }
