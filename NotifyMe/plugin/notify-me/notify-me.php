@@ -29,7 +29,10 @@ $nm = new notify_me();
 add_action( 'wp_loaded','nm_run' );
 function nm_run() {
     global $nm;
-    //$db = new notify_me_db;
+    $db = new notify_me_db;
+    //$template = $nm->get_template('compare');
+    //print($nm->load_template($template, array('postid' => '1206', 'reciver_email' => 'spy15@gmail.com' , 'changes' => array('ch' => array('1','0')))));
+    //s($db -> remove_entry('all','spy15@bluewin.ch'));
     //s($db -> remove_subscriber('all','test@dans-art.ch'));
     //$nm -> setup_frontend_page();
 }

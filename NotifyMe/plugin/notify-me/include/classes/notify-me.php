@@ -37,8 +37,8 @@ class notify_me extends notify_me_helper
         //Add Shortcodes
         if (get_option('notify_me_activate_sc') === 'true') {
             add_shortcode('notify_me_button', [$this, 'add_button_sc']);
-            add_shortcode('notify_me_manage_subscription', [$this, 'manage_subscription']);
         }
+        add_shortcode('notify_me_manage_subscription', [$this, 'manage_subscription']);
 
         $this->set_blacklist(array(
             'ID', 'comment_status', 'ping_status',
@@ -46,6 +46,8 @@ class notify_me extends notify_me_helper
             'menu_order', 'post_type', 'post_mime_type', 'filter'
         ));
     }
+
+
     /**
      * Outputs the Button when it is called from a shortcode.
      * Use [notify_me_button]
@@ -163,7 +165,7 @@ class notify_me extends notify_me_helper
         if (empty($template)) {
             return null;
         }
-        $changesHtml = $this->load_template($template, array('postid' => $post_id, 'changes' => $changes));
+        $changesHtml = $this->load_template($template, array('postid' => $post_id, 'reciver_email' => $email, 'changes' => $changes));
 
         //Send changes mail
         $send = new notify_me_emailer;
@@ -276,6 +278,14 @@ class notify_me extends notify_me_helper
             case 'unsubscribe':
                 return $this->delete_subscription();
                 break;
+            case 'test':
+                $template = $this->get_template('compare');
+                if (empty($template)) {
+                    return null;
+                }
+                echo $this->load_template($template, array('postid' => '210', 'reciver_email' => 'spy15@bluewin.ch', 'changes' => array('post_title' => array('Old Title','New Title'))));
+                return;
+                break;
         }
         return;
     }
@@ -296,10 +306,19 @@ class notify_me extends notify_me_helper
         }
         $db = new notify_me_db;
         $remove_sub = $db->remove_subscriber($post_id, $email);
-        if($remove_sub > 0){
-            echo sprintf(__('You are successfully unsubscribed to %s posts', 'notify-me'),$remove_sub);
+        if ($remove_sub > 0) {
+            echo sprintf(_n('You are successfully unsubscribed to %s post', 'You are successfully unsubscribed to %s posts', $remove_sub, 'notify-me'), $remove_sub);
         }
-        $db->remove_entry($post_id, $email);
+        $remove_entry = $db->remove_entry($post_id, $email);
+
+        if ($remove_sub === 0 and $remove_entry === 0) {
+            if ($post_id === 'all') {
+                return __('You have been removed from all the subscriptions', 'notify-me');
+            } else {
+                $the_title = get_the_title($post_id);
+                return sprintf(__('Your subscription for "%s" has ben deleted', 'notify-me'), $the_title);
+            }
+        }
         return;
     }
 }

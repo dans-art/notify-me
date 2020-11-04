@@ -1,0 +1,7 @@
+{
+"version": 3,
+"mappings": "AAAA;;;GAGG;AAEH;;;;;;;;;;EAUE;AACF;;;;;;;EAOE;AAEF,IAAI;EACF,gBAAgB,EAAE,YAAY",
+"sources": ["../../../../NotifyMe/src/styles/src.mail.scss"],
+"names": [],
+"file": "mail.css"
+}

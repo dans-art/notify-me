@@ -15,8 +15,6 @@ class notify_me_helper
     protected $admin_errors = array();
     protected $admin_infos = array();
     
-
-
     public function __construct()
     {
 
@@ -70,6 +68,19 @@ class notify_me_helper
             return false;
         } //Not found in Theme as well as in plugin folder
         return $tmp;
+    }
+
+    public function nm_get_stylesheet($name){
+        $name = (empty($name))?'main':$name;
+        $style_theme = get_stylesheet_directory() . '/notify-me/style/' . $name . '.css';
+        $style_plugin = $this -> plugin_path . 'style/' . $name . '.css';
+        if(file_exists($style_theme)){
+            return $style_theme;
+        }
+        if(file_exists($style_plugin)){
+            return $style_plugin;
+        }
+        return false;
     }
 
     /**
@@ -259,6 +270,30 @@ $current_slug = $wp->request;
         }
         return false;
        
+    }
+    /**
+     * Get the link of the Page for managing the subscription
+     *
+     * @param [type] $reciver_email
+     * @param string $post_id
+     * @return void
+     */
+    public function get_unsubscribe_link($reciver_email,$post_id = 'all'){
+        $unsubscribe_page = get_option('notify_me_manage_subscription_page');
+        $the_title = get_the_title( $post_id );
+        $perma_link =  get_permalink( $unsubscribe_page );
+        $msg = ($post_id === 'all')?__('Unsubscribe to all notifications','notify-me'):sprintf(__('Unsubscribe to "%s"','notify-me'),$the_title);
+       return '<a href="'.$perma_link.'?do=unsubscribe&post='.$post_id.'&email='.$reciver_email.'">'.$msg.'</a>';
+    }
+
+    public function get_field_name($name){
+        $trans = array('post_title' => 'Title');
+        if(isset($trans[$name])){
+            return $trans[$name];
+        }
+        else{
+            return $name;
+        }
     }
 
 }

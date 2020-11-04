@@ -103,21 +103,21 @@ class notify_me_db extends notify_me_helper{
      */
     public function remove_entry($post_id,$email){
         global $wpdb;
-        
         if($this -> is_email($email)){
             $email = htmlspecialchars($email);
         }else{
-            return false;
+            return __('Invalid email','notify-me');
         }
         if($post_id === 'all'){
             $where = array('email' => $email);
         }else{
             $where = array('email' => $email, 'post_id' => (int) $post_id);
         }
-        if($wpdb -> delete($this -> table_name, $where) > 0){
-            return true;
+        $deleted = $wpdb -> delete($this -> table_name, $where);
+        if( $deleted > 0){
+            return $deleted;
         }else{
-            return false;
+            return 0;
         }
     }
 
@@ -152,7 +152,7 @@ class notify_me_db extends notify_me_helper{
             }
             return $count;
         }else{
-            return null;
+            return 0;
         }
     }
 
