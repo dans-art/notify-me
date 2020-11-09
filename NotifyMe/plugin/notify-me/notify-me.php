@@ -31,7 +31,7 @@ function nm_run() {
     global $nm;
     $db = new notify_me_db;
     //$template = $nm->get_template('compare');
-    //print($nm->load_template($template, array('postid' => '1206', 'reciver_email' => 'spy15@gmail.com' , 'changes' => array('ch' => array('1','0')))));
+    //print($nm->load_template($template, array('post_id' => '1206', 'reciver_email' => 'spy15@gmail.com' , 'changes' => array('ch' => array('1','0')))));
     //s($db -> remove_entry('all','spy15@bluewin.ch'));
     //s($db -> remove_subscriber('all','test@dans-art.ch'));
     //$nm -> setup_frontend_page();

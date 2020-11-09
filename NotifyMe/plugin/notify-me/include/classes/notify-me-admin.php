@@ -1,4 +1,11 @@
 <?php
+/**
+ * Plugin Name: Notify Me!
+ * Class description: Class for managing the Admin Backend. Adds Fields. 
+ * Author: DansArt.
+ * Author URI: http://dans-art.ch
+ *
+ */
 class notify_me_admin extends notify_me_helper
 {
 
@@ -42,7 +49,7 @@ class notify_me_admin extends notify_me_helper
         //Checkbox - Activate Shortcode functionality
         add_settings_field(
             'activate-shortcode-notify-me',
-            __('Activate Notify-Me! Shortcodes', 'notify-me'),
+            __('Activate Shortcodes', 'notify-me'),
             [$this, 'std_input'],
             'notify-me',
             'notify-me-settings-section',

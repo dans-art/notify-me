@@ -22,6 +22,56 @@
 @import 'utilities/*';
 */
 body {
-  background-color: antiquewhite; }
+  background-color: #d6d6d6;
+  font-family: Verdana, Geneva, Tahoma, sans-serif; }
+
+#nm_mail_main {
+  background-color: white;
+  max-width: 800px;
+  margin: 10px auto;
+  padding: 20px; }
+
+#nm_header {
+  margin-bottom: 10px; }
+
+/* Compare Table */
+#nm_compare_table {
+  margin: 10px 0px;
+  border-collapse: collapse;
+  width: 100%; }
+  #nm_compare_table td {
+    width: 50%;
+    padding: 5px; }
+
+.nm_table_header {
+  font-weight: bold;
+  margin-top: 10px; }
+
+.nm_compare_old {
+  text-decoration: line-through;
+  color: gray; }
+
+.nm_compare_old, .nm_compare_new {
+  border: solid 1px #707070; }
+
+#nm_footer {
+  line-height: 1.5em;
+  margin-top: 20px; }
+
+/* Button */
+.nm_button {
+  text-align: center;
+  padding: 10px 0; }
+  .nm_button a {
+    max-width: 300px;
+    padding: 8px 12px;
+    border: 1px solid #1d49bc;
+    background-color: #c5c5ff;
+    border-radius: 2px;
+    color: black;
+    text-decoration: none; }
+  .nm_button a:hover {
+    border: 1px solid #3f6bdb;
+    background-color: #dedef7; }
 
 /*# sourceMappingURL=mail.css.map */

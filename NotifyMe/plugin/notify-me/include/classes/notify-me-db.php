@@ -1,9 +1,18 @@
 <?php
-
+/**
+ * Plugin Name: Notify Me!
+ * Class description: Class for adding, removing and modifing Notify-Me Database entries. 
+ * Author: DansArt.
+ * Author URI: http://dans-art.ch
+ *
+ */
 class notify_me_db extends notify_me_helper{
 
     public $table_name = '';
 
+    /**
+     * Sets the table_name
+     */
     public function __construct()
     {
         global $wpdb;
@@ -95,7 +104,7 @@ class notify_me_db extends notify_me_helper{
         }
     }
     /**
-     * Removes a entry form the database / queue.
+     * Removes a entry form the database / queue. Best use together with remove_subscriber
      *
      * @param [mixed] $post_id - Post Id to remove a individual entry or 'all' to remove all entries with the email set.
      * @param [string] $email - email of the subscriber
@@ -121,9 +130,16 @@ class notify_me_db extends notify_me_helper{
         }
     }
 
+    /**
+     * Removes the Subscriber from the Postmeta. So he will not get notified anymore on post change.
+     * Best use together with remove_entry
+     *
+     * @param [type] $post_id
+     * @param [type] $email
+     * @return void
+     */
     public function remove_subscriber($post_id,$email){
         global $wpdb;
-        //get all posts with the subscriber
         if($this -> is_email($email)){
             $email = htmlspecialchars($email);
         }else{

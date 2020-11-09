@@ -1,12 +1,19 @@
 <?php
-
+/**
+ * Plugin Name: Notify Me!
+ * Class description: Main Class. Includes the plugins functionalities to front- and backend. 
+ * Author: DansArt.
+ * Author URI: http://dans-art.ch
+ *
+ */
 class notify_me extends notify_me_helper
 {
 
     /**
      * Loads all the necessary stuff for the plugin
      * Add Actions, register hooks, set default properties, 
-     * checks if the plugin auto includes the field in frontend or not.
+     * checks if the plugin auto includes in frontend or not.
+     * Currently Supporting: Posts, Pages, The Events Calendar by Tribe Events, Woocommerce Products,...
      */
     public function __construct()
     {
@@ -31,7 +38,8 @@ class notify_me extends notify_me_helper
         //Check if the plugin is active or not
         if (get_option('notify_me_activate') === 'true') {
             //Load Button to supported plugins / pages
-            $this->add_button();
+            $this->add_button(); // The Events Calendar
+            add_filter('the_content', [$this, 'add_button_filter']); //Pages and Posts
         }
 
         //Add Shortcodes
@@ -45,6 +53,8 @@ class notify_me extends notify_me_helper
             'post_password', 'to_ping', 'post_name', 'pinged', 'post_parent', 'guid',
             'menu_order', 'post_type', 'post_mime_type', 'filter'
         ));
+        //Removes the subscription page
+        $this -> post_blacklist[] = get_option('notify_me_manage_subscription_page');
     }
 
 
@@ -59,20 +69,47 @@ class notify_me extends notify_me_helper
         echo $this->add_button(true);
     }
     /**
+     * Outputs the Button when it is called from a filter.
+     *  @param [string] $content - The Main content of the page / post. 
+     * @return [string] - Html Code of the Button. From template templates/theme/button.php
+     */
+    public function add_button_filter($content)
+    {
+        $supported_types = array('post', 'page');
+        $current_page_type = get_post_type();
+        if (in_array($current_page_type, $supported_types)) {
+            $content = $content . $this->add_button(true);
+        }
+        return $content;
+    }
+    /**
      * Adds the button to the Page or Event.
      *
-     * @param boolean $return_html - If true, the function will not include the button to the page. 
+     * @param [boolean] $return_html - If true, the function will not include the button to the page. 
      *                              Instead it will output the HTML from the template file. (templates/theme/button.php) 
      * @return [mixed] - bool or string
      */
     public function add_button($return_html = false)
     {
+        $blacklist = $this -> post_blacklist;
+        $current_id = get_the_ID();
+        if(in_array($current_id,$blacklist)){
+            return false;
+        }
         $this->enqueue_scripts();
+        $button_text = $this->get_button_text();
         $template = $this->get_template('button');
         if ($return_html) {
-            return $this->load_template($template);
+            return $this->load_template($template, array('button_text' => $button_text));
         } else {
+            //This Events Calendar
             add_action('tribe_events_single_event_after_the_content', function () use ($template) {
+                $button_text = $this->get_button_text('tribe');
+                include($template);
+            }, 99, 1);
+            //Woocommerce
+            add_action('woocommerce_share', function () use ($template) {
+                $button_text = $this->get_button_text('woocommerce');
                 include($template);
             }, 99, 1);
         }
@@ -80,6 +117,27 @@ class notify_me extends notify_me_helper
         return;
     }
 
+    /**
+     * Gets the Button text by post_type.
+     *
+     * @param [string] $post_type - tribe, woocommerce, post, page
+     * @return [string] Translated text for the button
+     */
+    public function get_button_text($post_type = 'post')
+    {
+        switch ($post_type) {
+            case 'woocommerce':
+                return __('Subscribe to this Product', 'notify-me');
+                break;
+            case 'tribe':
+                return __('Subscribe to this Event', 'notify-me');
+                break;
+            default:
+                return __('Subscribe to this Post', 'notify-me');
+                break;
+        }
+        return;
+    }
     /**
      * Main Method for handling the Ajax Calls
      *
@@ -91,7 +149,7 @@ class notify_me extends notify_me_helper
         $action =  $_REQUEST['do'];
         switch ($action) {
             case 'save':
-                echo $ajax->save_subscriber($_REQUEST['postid'], $_REQUEST['email']);
+                echo $ajax->save_subscriber($_REQUEST['post_id'], $_REQUEST['email']);
                 break;
         }
         exit();
@@ -154,10 +212,9 @@ class notify_me extends notify_me_helper
      * Sends a mail with the changes to the subscriber
      *
      * @param [string] $email - email of the subscriber
-     * @param [interger] $post_id - Post ID of the post, which got updated
+     * @param [interger] $post_id - ID of the post, which got updated
      * @param [array] $changes - Array of changes arra(array('oldVal','newVal'), array....)
      * @return [bool] true on success, false on error
-     * @todo fix pageId / postid confusion -> use only post_id!
      */
     public function send_mail_to_subscriber($email, $post_id, $changes)
     {
@@ -165,11 +222,11 @@ class notify_me extends notify_me_helper
         if (empty($template)) {
             return null;
         }
-        $changesHtml = $this->load_template($template, array('postid' => $post_id, 'reciver_email' => $email, 'changes' => $changes));
+        $changesHtml = $this->load_template($template, array('post_id' => $post_id, 'reciver_email' => $email, 'changes' => $changes));
 
         //Send changes mail
         $send = new notify_me_emailer;
-        $send->set_message_from_template(array('pageId' => $post_id, 'message' => $changesHtml), 'default');
+        $send->set_message_from_template(array('post_id' => $post_id, 'message' => $changesHtml), 'default');
         //$send -> set_message($changesHtml);
         $oldTitle = (isset($changes['post_title'][0])) ? $changes['post_title'][0] : get_the_title($post_id);
 
@@ -188,7 +245,8 @@ class notify_me extends notify_me_helper
     }
 
     /**
-     * Adds the Notify-Me Settings page
+     * Adds the Notify-Me Settings page in the backend
+     * [Settings] -> [Notify Me!]
      *
      * @return void
      */
@@ -270,6 +328,7 @@ class notify_me extends notify_me_helper
      * Main Method for managing Subscriptions. Called by shortcode [notify_me_manage_subscription]
      *
      * @return void
+     * @todo Add confirmation to cancel your subscription in frontend
      */
     public function manage_subscription()
     {
@@ -279,11 +338,11 @@ class notify_me extends notify_me_helper
                 return $this->delete_subscription();
                 break;
             case 'test':
-                $template = $this->get_template('compare');
+                $template = $this->get_template('compare', 'templates/theme/');
                 if (empty($template)) {
                     return null;
                 }
-                echo $this->load_template($template, array('postid' => '210', 'reciver_email' => 'spy15@bluewin.ch', 'changes' => array('post_title' => array('Old Title','New Title'))));
+                echo $this->load_template($template, array('message' => 'Hallo Welt', 'post_id' => '210', 'reciver_email' => 'spy15@bluewin.ch', 'changes' => array('post_title' => array('Old Title', 'New Title'), 'post_content' => array('Alter Inhalt', 'Neuer Inhalt'))));
                 return;
                 break;
         }

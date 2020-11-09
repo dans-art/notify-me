@@ -1,5 +1,11 @@
 <?php
-
+/**
+ * Plugin Name: Notify Me!
+ * Class description: Various helper methods. Like loading templates, check if valid mail, get version etc.
+ * Author: DansArt.
+ * Author URI: http://dans-art.ch
+ *
+ */
 include_once('kint.phar');
 
 class notify_me_helper
@@ -14,11 +20,13 @@ class notify_me_helper
     protected $compareBlacklist = array();
     protected $admin_errors = array();
     protected $admin_infos = array();
+    protected $post_blacklist = array();
     
     public function __construct()
     {
 
     }
+
 
     /**
      * Gets a file and transport some data to use.
@@ -70,6 +78,29 @@ class notify_me_helper
         return $tmp;
     }
 
+    /**
+     * Gets a template from the emails folder.
+     *
+     * @param [string] $name - Template to use. Default: default
+     * @param array $data - Array of data to transport to the template file
+     * @return [stirng] Errormessage on failure, template contents on success.
+     */
+    public function load_mail_template($name, $data = array()){
+        $template = $this -> get_template($name,'templates/mail/');
+        if (!empty($template)) {
+            return $this->load_template($template, $data);
+        }else{
+            $msg = sprintf(__('No template file "%s" found!','notify-me'),$name);
+            return $this -> format_error($msg);
+        }
+    }
+
+    /**
+     * Gets the stylesheet path from plugin or theme folder.
+     *
+     * @param [type] $name - Name of the template file. Default: main
+     * @return [mixed] false on error, path to file on success.
+     */
     public function nm_get_stylesheet($name){
         $name = (empty($name))?'main':$name;
         $style_theme = get_stylesheet_directory() . '/notify-me/style/' . $name . '.css';

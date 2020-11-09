@@ -1,7 +1,10 @@
 <?php 
-
 /**
- * Class for sending and preparing emails
+ * Plugin Name: Notify Me!
+ * Class description: Class for preparing and sending emails. 
+ * Author: DansArt.
+ * Author URI: http://dans-art.ch
+ *
  */
 class notify_me_emailer extends notify_me{
 
@@ -11,6 +14,9 @@ class notify_me_emailer extends notify_me{
     private $sender = "";
     public $error = array();
     
+    /**
+     * Init the class. Sets the Sender.
+     */
     public function __construct(){
         $this -> set_sender();
     }
@@ -44,12 +50,8 @@ class notify_me_emailer extends notify_me{
      */
     public function set_message_from_template($data,$template = 'default')
     {
-        $tmp = $this -> get_template($template,'templates/mail/');
-        if($tmp === false){$tmp = $this -> get_template($template,'templates/mail/');}
-        
-        if(!$tmp){$this -> message = __('Error while getting the Template file','notify-me');}
         $data = (is_string($data))?array('data' => $data):$data;
-        $this->message = $this -> load_template($tmp,$data);
+        $this->message = $this -> load_mail_template($template,$data);
     }
     /**
      * Set the reciver of the email
@@ -116,5 +118,21 @@ class notify_me_emailer extends notify_me{
             }
             return false;
         }
+    }
+
+    /**
+     * Sends the confirmation eMail
+     *
+     * @param [integer] $post_id - Id of the Post
+     * @param [string] $email - Email Adress of subscriber
+     * @return void
+     */
+    public function send_confirmation_mail($post_id,$email){
+        $msg = sprintf(__('Thanks for subscribing to "%s"!'),get_the_title( $post_id ));
+        $post_id_validated = (int) htmlspecialchars($post_id);
+        $this -> set_message_from_template(array('post_id' => $post_id_validated, 'reciver_email' => $email, 'message' => $msg),'default');
+        $this -> set_subject(get_option('blogname') . __(' - Subscribed to Post'));
+        $this -> set_receiver($email);
+        return $this -> send_email();
     }
 }

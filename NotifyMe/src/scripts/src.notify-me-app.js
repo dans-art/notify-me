@@ -12,7 +12,7 @@ import * as tools from './modules/tools.js';
 jQuery(document).ready(function($) {
   $('.notify-me.button').click(function(){
     var mail = jQuery(this).parent().find('input').val();
-    var id = jQuery(this).data('postid');
+    var id = jQuery(this).data('post_id');
     set_subscriber(id,mail);
   });
  
@@ -22,12 +22,12 @@ function set_subscriber(pid,em){
   var data = {
     action: 'nm-ajax',
     do: 'save',
-    postid: pid,
+    post_id: pid,
     email: em,
   };
   jQuery.post(wp_site_url + '/wp-admin/admin-ajax.php', data, function(response) {
     // alert('Got this from the server: ' + response);
-    jQuery('span[data-postid="'+pid+'"]').parent().find('.return').html(response);    
+    jQuery('span[data-post_id="'+pid+'"]').parent().find('.return').html(response);    
   });
 
   }
